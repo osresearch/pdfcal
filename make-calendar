@@ -5,15 +5,20 @@ import datetime
 font = 'Arial'
 year = 2022
 
+# close to a4 sizes in mm, but matching the remarkable 2
+w = 210
+h = 280
+
+# clear the remarkable tool bar
+left_margin = 20
+
 pdf = FPDF(
 	orientation='portrait',
 	unit='mm',
-	format='A4',
+	format=(w,h),
 )
-
-# a4 sizes in mm
-w = 210
-h = 297
+pdf.set_margins(0,0)
+pdf.set_auto_page_break(False)
 
 links = {}
 days = [ "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" ]
@@ -48,7 +53,7 @@ def add_calendar(
 
 	pdf.set_font(font, 'B', 2*size)
 	pdf.set_text_color(255)
-	pdf.set_fill_color(20)
+	pdf.set_fill_color(40)
 
 	if include_year:
 		header = "%s %04d" % (months[mon], year)
@@ -95,29 +100,114 @@ def add_calendar(
 		weekday = date.weekday()
 		link = links["%04d-%02d-%02d" % (year,mon,day)]
 
-		if weekday == 0 and day != 0:
+		if weekday == 0 and day != 1:
 			week += 1
 
-		pdf.set_xy(x + weekday * size, y + week * ysize)
+		day_x = x + weekday * size
+		day_y = y + week * ysize
+
+		if border:
+			pdf.rect(day_x, day_y, size, ysize)
+		if day == highlight:
+			pdf.rect(day_x, day_y, size, ysize, style="F")
+
+		pdf.set_xy(day_x, day_y)
 		pdf.cell(
 			w = size,
-			h = ysize,
+			h = day_font/2 + 1,
 			txt = "%d" % (day),
 			align = 'R',
 			link = link,
-			fill = day == highlight,
-			border = border,
+			#fill = day == highlight,
+			#border = border,
 		)
 
+def add_day(pdf, year, mon, day):
+	try:
+		date = datetime.date(year, mon, day)
+	except Exception as e:
+		return
+
+	pdf.add_page()
+	pdf.set_link(links["%04d-%02d-%02d" %(year,mon,day)])
+
+	cal_size = 8
+	date_y = 0
+	cal_w = 7 * cal_size
+	cal_h = 8 * cal_size
+	cal_y = 50
+	cal_x = w - cal_w - 4
+
+	add_calendar(pdf, year, mon, day, cal_size, cal_x, cal_y, include_year=True, ysize=8)
+
+	if mon > 1:
+		add_calendar(pdf, year, mon - 1, -1, cal_size*0.5, cal_x, cal_y + cal_h)
+	if mon < 12:
+		add_calendar(pdf, year, mon + 1, -1, cal_size*0.5, cal_x + cal_w/2, cal_y + cal_h)
+
+	# big date and day of week
+	pdf.set_font(font, 'b', 125)
+	pdf.set_xy(cal_x, date_y + 8)
+	pdf.cell(
+		txt = "%d" % (day),
+		align="C",
+		w = cal_w,
+		h = 50,
+	)
+
+	pdf.set_font(font, 'b', 26)
+	pdf.set_xy(cal_x, date_y)
+	pdf.cell(
+		txt = fulldays[date.weekday()],
+		w = cal_w,
+		h = 15,
+		align = "C",
+	)
+
+	# add the time blocks
+	pdf.set_draw_color(200)
+	pdf.set_line_width(0)
+	pdf.set_text_color(40)
+	pdf.set_font(font, 'B', 16)
+
+	hour_h = h / 30
+	for i in range(1,30):
+		line_y = i * hour_h
+		#if i < 7:
+		line_x = cal_x - 8
+		#else:
+		#	line_x = w * 0.6 - 2.5
+		pdf.line(left_margin, line_y, line_x, line_y)
+
+		if i % 2 != 0:
+			continue
+		pdf.set_xy(left_margin, line_y-0)
+		pdf.cell(
+			w=hour_h,
+			h=hour_h,
+			txt="%02d" % (i//2 + 8),
+			align="C",
+		)
+		pdf.rect(left_margin, line_y, hour_h, hour_h)
+
+	# add the todo blocks
+	todo_h = hour_h + 1.5
+	for i in range(0,13):
+		line_y = i * todo_h + cal_y + cal_h * 1.5 + todo_h
+		line_x = cal_x - 4
+		pdf.line(line_x, line_y, w, line_y)
+		pdf.rect(line_x, line_y-todo_h/2, todo_h/2, todo_h/2)
+	
+		
 
 # Create the title page
 pdf.add_page()
 pdf.set_font(font, 'B', 40)
 pdf.set_xy(0, 0)
-pdf.cell(txt="%04d" % (year), align='C', border=1, w=w, h=20)
+pdf.cell(txt="%04d" % (year), align='C', w=w, h=20)
 
 for mon in range(0,12):
-	xsize = 10 * 7
+	xsize = 9 * 7
 	ysize = 9 * 7
 	add_calendar(
 		pdf,
@@ -125,13 +215,14 @@ for mon in range(0,12):
 		mon + 1,
 		-1,
 		8,
-		(mon % 3) * xsize + 10,
+		(mon % 3) * xsize + left_margin,
 		(mon // 3) * ysize + 20,
+		ysize = 8,
 	)
 
 # Now create all of the month and day
-#for mon in range(1,12+1):
-for mon in range(1,4):
+for mon in range(1,12+1):
+#for mon in range(1,4):
 	# month overview page
 	pdf.add_page()
 	pdf.set_link(links["%04d-%02d" % (year, mon)])
@@ -141,8 +232,8 @@ for mon in range(1,4):
 		year,
 		mon,
 		-1,
-		30,
-		0,
+		(w - left_margin) / 7,
+		left_margin,
 		0,
 		day_font=12,
 		border=True,
@@ -151,48 +242,7 @@ for mon in range(1,4):
 	)
 
 	for day in range(1,31+1):
-		try:
-			date = datetime.date(year, mon, day)
-		except Exception as e:
-			continue
-
-		pdf.add_page()
-		pdf.set_link(links["%04d-%02d-%02d" %(year,mon,day)])
-		#pdf.set_font(font, 'B', 40)
-		#pdf.set_xy(0, h/2)
-		#pdf.cell(txt="%04d %s %d" % (year,months[mon], day), align='C', border=1, ln=1, w=w, h=40)
-
-		cal_size = 8
-		cal_w = 7 * cal_size
-		cal_h = 8 * cal_size
-		cal_y = 0
-		cal_x = w - cal_w
-
-		add_calendar(pdf, year, mon, day, cal_size, cal_x, cal_y, include_year=True)
-
-		if mon > 1:
-			add_calendar(pdf, year, mon - 1, -1, cal_size/2, cal_x, cal_y + cal_h)
-		if mon < 12:
-			add_calendar(pdf, year, mon + 1, -1, 4, cal_x + cal_w/2, cal_y + cal_h)
-
-		pdf.set_font(font, 'b', 125)
-		pdf.set_xy(cal_x - cal_w, cal_y)
-		pdf.cell(
-			txt = "%2d" % (day),
-			align="R",
-			w = cal_w,
-			h = 50,
-		)
-
-		pdf.set_font(font, 'b', 25)
-		pdf.set_xy(cal_x - cal_w, cal_y + 35)
-		pdf.cell(
-			txt = fulldays[date.weekday()],
-			w = cal_w,
-			h = 20,
-			align = "R",
-		)
-		
+		add_day(pdf, year, mon, day)
 
 pdf.output('test.pdf', 'F')
 
