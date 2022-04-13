@@ -17,6 +17,7 @@ h = 297
 
 links = {}
 days = [ "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" ]
+fulldays = [ "Monday", "Tueday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ]
 months = [ "None", "January", "Febuary", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ]
 
 # Create internal links for every day of the year as well as month pages
@@ -27,9 +28,21 @@ for mon in range(1,12+1):
 	for day in range(1,31+1):
 		links["%04d-%02d-%02d" % (year,mon,day)] = pdf.add_link()
 
-def add_calendar(pdf, year, mon, highlight, size, x, y, day_font = None, border=False, include_year = False):
-	week = 1.5 # skip the heading
-	xsize = size
+def add_calendar(
+	pdf,
+	year,
+	mon,
+	highlight,
+	size,
+	x,
+	y,
+	day_font = None,
+	border=False,
+	include_year = False,
+	ysize = None,
+):
+	if not ysize:
+		ysize = size
 	if not day_font:
 		day_font = size * 1.5
 
@@ -44,28 +57,30 @@ def add_calendar(pdf, year, mon, highlight, size, x, y, day_font = None, border=
 
 	pdf.set_xy(x,y)
 	pdf.cell(
-		w = 7 * xsize,
+		w = 7 * size,
 		h = 1.5 * size,
 		txt = header,
 		align = 'C',
 		fill = True,
 		link = links["%04d-%02d" % (year,mon)]
 	)
+	y += size * 1.5
 
 	# draw the days of the week above the table
 	pdf.set_fill_color(180)
 	pdf.set_font(font, '', size)
 	for weekday in range(0,7):
-		pdf.set_xy(x + weekday * xsize, y + week * size)
+		pdf.set_xy(x + weekday * size, y)
 		pdf.cell(
 			h = size * 0.5,
-			w = xsize,
+			w = size,
 			txt = days[weekday],
 			fill = True,
 			align = 'C',
 		)
 
-	week += 0.5
+	week = 0
+	y += size * 0.5
 		
 	# draw the table for days of the month
 	pdf.set_font(font, '', day_font)
@@ -83,10 +98,10 @@ def add_calendar(pdf, year, mon, highlight, size, x, y, day_font = None, border=
 		if weekday == 0 and day != 0:
 			week += 1
 
-		pdf.set_xy(x + weekday * xsize, y + week * size)
+		pdf.set_xy(x + weekday * size, y + week * ysize)
 		pdf.cell(
-			h = size,
-			w = xsize,
+			w = size,
+			h = ysize,
 			txt = "%d" % (day),
 			align = 'R',
 			link = link,
@@ -115,7 +130,8 @@ for mon in range(0,12):
 	)
 
 # Now create all of the month and day
-for mon in range(1,12+1):
+#for mon in range(1,12+1):
+for mon in range(1,4):
 	# month overview page
 	pdf.add_page()
 	pdf.set_link(links["%04d-%02d" % (year, mon)])
@@ -131,8 +147,9 @@ for mon in range(1,12+1):
 		day_font=12,
 		border=True,
 		include_year=True,
+		ysize=36
 	)
-	
+
 	for day in range(1,31+1):
 		try:
 			date = datetime.date(year, mon, day)
@@ -145,12 +162,36 @@ for mon in range(1,12+1):
 		#pdf.set_xy(0, h/2)
 		#pdf.cell(txt="%04d %s %d" % (year,months[mon], day), align='C', border=1, ln=1, w=w, h=40)
 
-		add_calendar(pdf, year, mon, day, 8, w - 7 * 8, 0, include_year=True)
+		cal_size = 8
+		cal_w = 7 * cal_size
+		cal_h = 8 * cal_size
+		cal_y = 0
+		cal_x = w - cal_w
+
+		add_calendar(pdf, year, mon, day, cal_size, cal_x, cal_y, include_year=True)
 
 		if mon > 1:
-			add_calendar(pdf, year, mon - 1, -1, 4, w - 7 * 8, 8*8)
+			add_calendar(pdf, year, mon - 1, -1, cal_size/2, cal_x, cal_y + cal_h)
 		if mon < 12:
-			add_calendar(pdf, year, mon + 1, -1, 4, w - 7 * 8/2, 8*8)
+			add_calendar(pdf, year, mon + 1, -1, 4, cal_x + cal_w/2, cal_y + cal_h)
+
+		pdf.set_font(font, 'b', 125)
+		pdf.set_xy(cal_x - cal_w, cal_y)
+		pdf.cell(
+			txt = "%2d" % (day),
+			align="R",
+			w = cal_w,
+			h = 50,
+		)
+
+		pdf.set_font(font, 'b', 25)
+		pdf.set_xy(cal_x - cal_w, cal_y + 35)
+		pdf.cell(
+			txt = fulldays[date.weekday()],
+			w = cal_w,
+			h = 20,
+			align = "R",
+		)
 		
 
 pdf.output('test.pdf', 'F')
