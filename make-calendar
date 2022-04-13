@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 from fpdf import FPDF
 
+font = 'Arial'
+year = 2022
+
 pdf = FPDF(
 	orientation='portrait',
 	unit='mm',
@@ -11,14 +14,43 @@ pdf = FPDF(
 w = 210
 h = 297
 
+links = {}
+months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ]
+
 pdf.add_page()
-
-pdf.set_line_width(0.1)
-pdf.line(0, 0, w, h)
-
+pdf.set_font(font, 'B', 40)
 pdf.set_xy(0, h/2)
-pdf.set_font('Arial', 'B', 20)
-pdf.cell(w=w, h=20, align='C', border=1, txt='Title')
+pdf.cell(txt="%04d" % (year), align='C', border=1, ln=1, w=w, h=40)
+pdf.set_font(font, 'B', 16)
+
+for mon in months:
+	links[mon] = pdf.add_link()
+
+for mon in months:
+	pdf.add_page()
+
+	#pdf.set_line_width(0.1)
+	#pdf.line(0, 0, w, h)
+
+	#pdf.set_xy(0, 0)
+	#pdf.ln()
+
+	for mon2 in months:
+		if mon == mon2:
+			pdf.set_font(font, 'B', 20)
+			pdf.set_link(links[mon])
+		else:
+			pdf.set_font(font, '', 16)
+
+		pdf.cell(
+			txt = mon2,
+			w=w * 0.8,
+			h=20,
+			align='C',
+			border=1,
+			ln = 1, # next line
+			link=links[mon2],
+		)
 
 pdf.output('test.pdf', 'F')
 
