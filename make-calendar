@@ -1,0 +1,24 @@
+#!/usr/bin/python3
+from fpdf import FPDF
+
+pdf = FPDF(
+	orientation='portrait',
+	unit='mm',
+	format='A4',
+)
+
+# a4 sizes in mm
+w = 210
+h = 297
+
+pdf.add_page()
+
+pdf.set_line_width(0.1)
+pdf.line(0, 0, w, h)
+
+pdf.set_xy(0, h/2)
+pdf.set_font('Arial', 'B', 20)
+pdf.cell(w=w, h=20, align='C', border=1, txt='Title')
+
+pdf.output('test.pdf', 'F')
+
