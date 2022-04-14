@@ -26,6 +26,7 @@ fulldays = [ "Monday", "Tueday", "Wednesday", "Thursday", "Friday", "Saturday", 
 months = [ "None", "January", "Febuary", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ]
 
 # Create internal links for every day of the year as well as month pages
+links["%04d" % (year)] = pdf.add_link()
 for mon in range(1,12+1):
 	# month overview page
 	links["%04d-%02d" % (year, mon)] = pdf.add_link()
@@ -153,6 +154,7 @@ def add_day(pdf, year, mon, day):
 		align="C",
 		w = cal_w,
 		h = 50,
+		link = links["%04d" % (year)],
 	)
 
 	pdf.set_font(font, 'b', 26)
@@ -162,6 +164,7 @@ def add_day(pdf, year, mon, day):
 		w = cal_w,
 		h = 15,
 		align = "C",
+		link = links["%04d" % (year)],
 	)
 
 	# add the time blocks
@@ -205,6 +208,7 @@ pdf.add_page()
 pdf.set_font(font, 'B', 40)
 pdf.set_xy(0, 0)
 pdf.cell(txt="%04d" % (year), align='C', w=w, h=20)
+pdf.set_link(links["%04d" % (year)])
 
 for mon in range(0,12):
 	xsize = 9 * 7
@@ -244,5 +248,5 @@ for mon in range(1,12+1):
 	for day in range(1,31+1):
 		add_day(pdf, year, mon, day)
 
-pdf.output('test.pdf', 'F')
+pdf.output('agenda-%04d.pdf' % (year), 'F')
 
