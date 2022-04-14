@@ -49,7 +49,7 @@ def add_calendar(
 	if not ysize:
 		ysize = size
 	if not day_font:
-		day_font = size * 1.5
+		day_font = size * 1.8
 
 	pdf.set_font(font, 'B', 2*size)
 	pdf.set_text_color(255)
@@ -114,7 +114,7 @@ def add_calendar(
 		pdf.set_xy(day_x, day_y)
 		pdf.cell(
 			w = size,
-			h = day_font/2 + 1,
+			h = day_font/2 + 1.5,
 			txt = "%d" % (day),
 			align = 'R',
 			link = link,
@@ -138,7 +138,7 @@ def add_day(pdf, year, mon, day):
 	cal_y = 50
 	cal_x = w - cal_w - 4
 
-	add_calendar(pdf, year, mon, day, cal_size, cal_x, cal_y, include_year=True, ysize=8)
+	add_calendar(pdf, year, mon, day, cal_size, cal_x, cal_y, include_year=True, ysize=cal_size-0.0)
 
 	if mon > 1:
 		add_calendar(pdf, year, mon - 1, -1, cal_size*0.5, cal_x, cal_y + cal_h)
