@@ -9,7 +9,7 @@ be done that day.
 
 ```
 pip3 install fpdf
-python3 ./make-agenda
+python3 ./make-calendar
 ```
 
 
