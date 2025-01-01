@@ -3,7 +3,7 @@ from fpdf import FPDF
 import datetime
 
 font = 'Arial'
-year = 2022
+year = 2025
 
 # close to a4 sizes in mm, but matching the remarkable 2
 w = 210
@@ -58,8 +58,10 @@ def add_calendar(
 
 	if include_year:
 		header = "%s %04d" % (months[mon], year)
+		link = links["%04d" % (year)]
 	else:
 		header = months[mon]
+		link = links["%04d-%02d" % (year,mon)]
 
 	pdf.set_xy(x,y)
 	pdf.cell(
@@ -68,7 +70,7 @@ def add_calendar(
 		txt = header,
 		align = 'C',
 		fill = True,
-		link = links["%04d-%02d" % (year,mon)]
+		link = link
 	)
 	y += size * 1.5
 
@@ -154,7 +156,7 @@ def add_day(pdf, year, mon, day):
 		align="C",
 		w = cal_w,
 		h = 50,
-		link = links["%04d" % (year)],
+		link = links["%04d-%02d" % (year, mon)],
 	)
 
 	pdf.set_font(font, 'b', 26)
