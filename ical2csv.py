@@ -31,9 +31,11 @@ def process_ical(year, cal, entries):
 		if type(start) == datetime.date:
 			# this is an all day event, handle it like a recurring.
 			# note that the end day is *not* included in the recurrance
-			while start < end:
+			while True:
 				create_entry(entries, start, datetime.timedelta(), title)
 				start += datetime.timedelta(days=1)
+				if start >= end:
+					break
 		else:
 			create_entry(entries, start, end - start, title)
 
@@ -44,7 +46,8 @@ if __name__ == "__main__":
 		year = 2025
 
 	entries = {}
-	process_ical(year, Calendar.from_ical(sys.stdin.read()), entries)
+	cal = Calendar.from_ical(sys.stdin.read())
+	process_ical(year, cal, entries)
 
 	for ymd,evs in sorted(entries.items()):
 		for hms,evs in sorted(evs.items()):
