@@ -1,9 +1,10 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from fpdf import FPDF
 import datetime
+import sys
 
-font = 'Arial'
-year = 2025
+font = 'dejavu'
+year = 2024
 
 # close to a4 sizes in mm, but matching the remarkable 2
 w = 210
@@ -19,20 +20,30 @@ pdf = FPDF(
 )
 pdf.set_margins(0,0)
 pdf.set_auto_page_break(False)
+pdf.add_font(font, '', fname='fonts/DejaVuSansCondensed.ttf')
+pdf.add_font(font, 'B', fname='fonts/DejaVuSansCondensed-Bold.ttf')
+#pdf.add_font('DejaVu', 'B', 'DejaVuSans-Bold.ttf', uni=True)
+#pdf.set_font('DejaVu', '', 14)
 
 links = {}
 days = [ "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" ]
-fulldays = [ "Monday", "Tueday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ]
-months = [ "None", "January", "Febuary", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ]
+fulldays = [ "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" ]
+months = [ "None", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ]
 
-# Create internal links for every day of the year as well as month pages
-links["%04d" % (year)] = pdf.add_link()
-for mon in range(1,12+1):
-	# month overview page
-	links["%04d-%02d" % (year, mon)] = pdf.add_link()
+# read events to populate in the calendar from a csv file
+entries = {}
 
-	for day in range(1,31+1):
-		links["%04d-%02d-%02d" % (year,mon,day)] = pdf.add_link()
+for filename in sys.argv[1:]:
+	with open(filename, "r") as f:
+		while line := f.readline():
+			[ymd,hms,dur,title] = line.split(",",3)
+
+			if ymd not in entries:
+				entries[ymd] = {}
+			if hms not in entries[ymd]:
+				entries[ymd][hms] = []
+			entries[ymd][hms].append([int(dur),title.strip()])
+	
 
 def add_calendar(
 	pdf,
@@ -44,7 +55,7 @@ def add_calendar(
 	y,
 	day_font = None,
 	border=False,
-	include_year = False,
+	include_year = False, # true == full page overview of the month
 	ysize = None,
 ):
 	if not ysize:
@@ -67,7 +78,7 @@ def add_calendar(
 	pdf.cell(
 		w = 7 * size,
 		h = 1.5 * size,
-		txt = header,
+		text = header,
 		align = 'C',
 		fill = True,
 		link = link
@@ -82,7 +93,7 @@ def add_calendar(
 		pdf.cell(
 			h = size * 0.5,
 			w = size,
-			txt = days[weekday],
+			text = days[weekday],
 			fill = True,
 			align = 'C',
 		)
@@ -91,7 +102,6 @@ def add_calendar(
 	y += size * 0.5
 		
 	# draw the table for days of the month
-	pdf.set_font(font, '', day_font)
 	pdf.set_text_color(0)
 
 	for day in range(1,31+1):
@@ -101,7 +111,8 @@ def add_calendar(
 			continue
 
 		weekday = date.weekday()
-		link = links["%04d-%02d-%02d" % (year,mon,day)]
+		ymd = "%04d-%02d-%02d" % (year,mon,day)
+		link = links[ymd]
 
 		if weekday == 0 and day != 1:
 			week += 1
@@ -115,15 +126,37 @@ def add_calendar(
 			pdf.rect(day_x, day_y, size, ysize, style="F")
 
 		pdf.set_xy(day_x, day_y)
+		pdf.set_font(font, '', day_font)
 		pdf.cell(
 			w = size,
 			h = day_font/2 + 1.5,
-			txt = "%d" % (day),
+			text = "%d" % (day),
 			align = 'R',
 			link = link,
 			#fill = day == highlight,
 			#border = border,
 		)
+
+		if not border:
+			continue
+		if not (events := entries.get(ymd)):
+			continue
+
+		pdf.set_font(font, '', day_font*0.8)
+		for hms,evs in sorted(events.items()):
+			for ev in evs:
+				if hms != "00:00" or ev[0] != 0:
+					# not an all day event
+					continue
+				pdf.set_xy(day_x+1, day_y + day_font/2 + 2)
+				pdf.multi_cell(
+					w = size,
+					h = day_font/3,
+					text = ev[1],
+					align = "L",
+				)
+	
+	
 
 def add_day(pdf, year, mon, day):
 	try:
@@ -131,8 +164,9 @@ def add_day(pdf, year, mon, day):
 	except Exception as e:
 		return
 
+	ymd = "%04d-%02d-%02d" % (year,mon,day)
 	pdf.add_page()
-	pdf.set_link(links["%04d-%02d-%02d" %(year,mon,day)])
+	pdf.set_link(links[ymd])
 
 	cal_size = 8
 	date_y = 0
@@ -149,20 +183,20 @@ def add_day(pdf, year, mon, day):
 		add_calendar(pdf, year, mon + 1, -1, cal_size*0.5, cal_x + cal_w/2, cal_y + cal_h)
 
 	# big date and day of week
-	pdf.set_font(font, 'b', 125)
+	pdf.set_font(font, 'B', 125)
 	pdf.set_xy(cal_x, date_y + 8)
 	pdf.cell(
-		txt = "%d" % (day),
+		text = "%d" % (day),
 		align="C",
 		w = cal_w,
 		h = 50,
 		link = links["%04d-%02d" % (year, mon)],
 	)
 
-	pdf.set_font(font, 'b', 26)
+	pdf.set_font(font, 'B', 26)
 	pdf.set_xy(cal_x, date_y)
 	pdf.cell(
-		txt = fulldays[date.weekday()],
+		text = fulldays[date.weekday()],
 		w = cal_w,
 		h = 15,
 		align = "C",
@@ -190,7 +224,7 @@ def add_day(pdf, year, mon, day):
 		pdf.cell(
 			w=hour_h,
 			h=hour_h,
-			txt="%02d" % (i//2 + 8),
+			text="%02d" % (i//2 + 8),
 			align="C",
 		)
 		pdf.rect(left_margin, line_y, hour_h, hour_h)
@@ -202,14 +236,44 @@ def add_day(pdf, year, mon, day):
 		line_x = cal_x - 4
 		pdf.line(line_x, line_y, w, line_y)
 		pdf.rect(line_x, line_y-todo_h/2, todo_h/2, todo_h/2)
+
+	# add prepopulated entries if there are any
+	if not (events := entries.get(ymd)):
+		return
+
+	for hms,evs in sorted(events.items()):
+		for ev in evs:
+			if hms == "00:00" and ev[0] == 0:
+				# this is an all day event
+				#print("adding", ev)
+				pdf.set_xy(left_margin, 0)
+				pdf.cell(
+					w = line_x - left_margin,
+					h = hour_h,
+					text = ev[1],
+					align = "C",
+				)
+	
+	
 	
 		
 
 # Create the title page
 pdf.add_page()
+
+# Create internal links for every day of the year as well as month pages
+# (must happen after the title page is created)
+links["%04d" % (year)] = pdf.add_link()
+for mon in range(1,12+1):
+	# month overview page
+	links["%04d-%02d" % (year, mon)] = pdf.add_link()
+
+	for day in range(1,31+1):
+		links["%04d-%02d-%02d" % (year,mon,day)] = pdf.add_link()
+
 pdf.set_font(font, 'B', 40)
 pdf.set_xy(0, 0)
-pdf.cell(txt="%04d" % (year), align='C', w=w, h=20)
+pdf.cell(text="%04d" % (year), align='C', w=w, h=20)
 pdf.set_link(links["%04d" % (year)])
 
 for mon in range(0,12):
@@ -250,5 +314,5 @@ for mon in range(1,12+1):
 	for day in range(1,31+1):
 		add_day(pdf, year, mon, day)
 
-pdf.output('agenda-%04d.pdf' % (year), 'F')
+pdf.output('agenda-%04d.pdf' % (year))
 
