@@ -136,18 +136,21 @@ def add_calendar(
 			continue
 
 		pdf.set_font(font, '', day_font*0.8)
+		all_day = ''
 		for hms,evs in sorted(events.items()):
 			for ev in evs:
 				if hms != "00:00" or ev[0] != 0:
 					# not an all day event
 					continue
-				pdf.set_xy(day_x+1, day_y + day_font/2 + 2)
-				pdf.multi_cell(
-					w = size,
-					h = day_font/3,
-					text = ev[1],
-					align = "L",
-				)
+				all_day += ev[1] + "\n"
+		if all_day:
+			pdf.set_xy(day_x+1, day_y + day_font/2 + 2)
+			pdf.multi_cell(
+				w = size,
+				h = day_font/3,
+				text = all_day,
+				align = "L",
+			)
 	
 	
 
@@ -236,19 +239,15 @@ def add_day(pdf, year, mon, day):
 	if not (events := entries.get(ymd)):
 		return
 
+	all_day = ''
+
+	pdf.set_font(font, '', 10)
 	for hms,evs in sorted(events.items()):
 		for ev in evs:
 			if hms == "00:00" and ev[0] == 0:
 				# this is an all day event
 				#print("adding", ev)
-				pdf.set_font(font, 'B', 16)
-				pdf.set_xy(left_margin, 0)
-				pdf.cell(
-					w = line_x - left_margin,
-					h = hour_h,
-					text = ev[1],
-					align = "C",
-				)
+				all_day += ev[1] + "\n"
 				continue
 			# time bounded; if it is less than the earliest time,
 			# draw it at the start time.
@@ -272,7 +271,6 @@ def add_day(pdf, year, mon, day):
 			)
 
 			pdf.set_xy(ev_x, ev_y)
-			pdf.set_font(font, '', 10)
 			pdf.multi_cell(
 				w = line_x - ev_x - 10,
 				h = 10/2,
@@ -280,6 +278,15 @@ def add_day(pdf, year, mon, day):
 				text = hms + ": " + ev[1]
 			)
 				
+	if all_day:
+		pdf.set_font(font, 'B', 16)
+		pdf.set_xy(left_margin, 0)
+		pdf.multi_cell(
+			w = line_x - left_margin,
+			h = hour_h/2,
+			text = all_day,
+			align = "C",
+		)
 	
 	
 	

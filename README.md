@@ -8,7 +8,7 @@ check boxes on the right hand side as a Todo list for un-timed items to
 be done that day.
 
 ```
-pip3 install fpdf
+pip install -r requirements.txt
 python3 ./make-calendar
 ```
 
@@ -23,3 +23,17 @@ The file is stored in `/root/.local/share/remarkable/xochitl/`, although renamed
 to a UUID, so you have to find the one to replace based on the size or date it
 was installed.  Mine was `6c0a555b-fc8a-4143-9a1b-2efdb3dad7da`, although yours
 is likely different.
+
+If you have an iCal file and want to pre-populate events into the calendar,
+add them on the command line:
+
+```
+curl 'https://ics.calendarlabs.com/76/7f1396de/US_Holidays.ics' > holidays.ics
+python3 ./make-calendar holidays.ics
+```
+
+Recurring events are supported thanks to [`recurring-ical-events`](https://github.com/niccokunzmann/python-recurring-ical-events),
+which handles the complexity of the iCal `RRULE` format and `EXDATE`.
+However, timezones are sort of punted on (everything is done in "local" time, with the
+assumption that you'll be in the timezone where the event is specified)
+and overlapping events are not properly rendered (they will overlap on the calendar).
