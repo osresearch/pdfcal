@@ -2,9 +2,11 @@
 from fpdf import FPDF
 import datetime
 import sys
+from ical2csv import process_ical
+from icalendar import Calendar, Event
 
 font = 'dejavu'
-year = 2025
+year = datetime.datetime.now().year
 
 # close to a4 sizes in mm, but matching the remarkable 2
 w = 210
@@ -22,8 +24,6 @@ pdf.set_margins(0,0)
 pdf.set_auto_page_break(False)
 pdf.add_font(font, '', fname='fonts/DejaVuSansCondensed.ttf')
 pdf.add_font(font, 'B', fname='fonts/DejaVuSansCondensed-Bold.ttf')
-#pdf.add_font('DejaVu', 'B', 'DejaVuSans-Bold.ttf', uni=True)
-#pdf.set_font('DejaVu', '', 14)
 
 links = {}
 days = [ "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" ]
@@ -35,15 +35,8 @@ entries = {}
 
 for filename in sys.argv[1:]:
 	with open(filename, "r") as f:
-		while line := f.readline():
-			[ymd,hms,dur,title] = line.split(",",3)
-
-			if ymd not in entries:
-				entries[ymd] = {}
-			if hms not in entries[ymd]:
-				entries[ymd][hms] = []
-			entries[ymd][hms].append([int(dur),title.strip()])
-	
+		cal = Calendar.from_ical(f.read())
+		process_ical(year, cal, entries)
 
 def add_calendar(
 	pdf,
