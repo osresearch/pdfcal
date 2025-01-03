@@ -1,1 +1,3 @@
-fpdf
+fpdf2>=2.5
+icalendar
+recurring_ical_events
