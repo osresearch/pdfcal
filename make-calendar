@@ -4,7 +4,7 @@ import datetime
 import sys
 
 font = 'dejavu'
-year = 2024
+year = 2025
 
 # close to a4 sizes in mm, but matching the remarkable 2
 w = 210
@@ -168,6 +168,7 @@ def add_day(pdf, year, mon, day):
 	pdf.add_page()
 	pdf.set_link(links[ymd])
 
+	start_h = 8
 	cal_size = 8
 	date_y = 0
 	cal_w = 7 * cal_size
@@ -206,6 +207,7 @@ def add_day(pdf, year, mon, day):
 	# add the time blocks
 	pdf.set_draw_color(200)
 	pdf.set_line_width(0)
+	pdf.set_fill_color(240)
 	pdf.set_text_color(40)
 	pdf.set_font(font, 'B', 16)
 
@@ -224,7 +226,7 @@ def add_day(pdf, year, mon, day):
 		pdf.cell(
 			w=hour_h,
 			h=hour_h,
-			text="%02d" % (i//2 + 8),
+			text="%02d" % (i//2 + start_h),
 			align="C",
 		)
 		pdf.rect(left_margin, line_y, hour_h, hour_h)
@@ -246,6 +248,7 @@ def add_day(pdf, year, mon, day):
 			if hms == "00:00" and ev[0] == 0:
 				# this is an all day event
 				#print("adding", ev)
+				pdf.set_font(font, 'B', 16)
 				pdf.set_xy(left_margin, 0)
 				pdf.cell(
 					w = line_x - left_margin,
@@ -253,6 +256,37 @@ def add_day(pdf, year, mon, day):
 					text = ev[1],
 					align = "C",
 				)
+				continue
+			# time bounded; if it is less than the earliest time,
+			# draw it at the start time.
+			ev_h,ev_m = [int(_) for _ in hms.split(":")]
+
+			if ev_h < start_h:
+				ev_h = start_h
+				ev_m = 0
+			if ev_h > start_h + 15:
+				ev_h = start_h + 15
+				ev_m = 0
+
+			ev_x = left_margin + hour_h + 5
+			ev_y = hour_h * (ev_h * 2 + ev_m / 30 - start_h*2)
+			ev_h = (ev[0]/1800) * hour_h
+
+			pdf.rect(
+				ev_x, ev_y,
+				line_x - ev_x - 10, ev_h,
+				style = "F",
+			)
+
+			pdf.set_xy(ev_x, ev_y)
+			pdf.set_font(font, '', 10)
+			pdf.multi_cell(
+				w = line_x - ev_x - 10,
+				h = 10/2,
+				align = "L",
+				text = hms + ": " + ev[1]
+			)
+				
 	
 	
 	
