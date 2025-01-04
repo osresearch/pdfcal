@@ -251,28 +251,29 @@ def add_day(pdf, year, mon, day):
 				continue
 			# time bounded; if it is less than the earliest time,
 			# draw it at the start time.
-			ev_h,ev_m = [int(_) for _ in hms.split(":")]
-
-			if ev_h < start_h:
-				ev_h = start_h
-				ev_m = 0
-			if ev_h > start_h + 15:
-				ev_h = start_h + 15
-				ev_m = 0
-
+			ev_hour,ev_min = [int(_) for _ in hms.split(":")]
 			ev_x = left_margin + hour_h + 5
-			ev_y = hour_h * (ev_h * 2 + ev_m / 30 - start_h*2)
+			ev_w = (line_x - ev_x - 10) / 2
+
+			if ev_hour < start_h:
+				ev_hour = start_h
+				ev_min = 0
+			if ev_hour > start_h + 15:
+				ev_hour = start_h + 15
+				ev_min = 0
+
+			ev_y = hour_h * (ev_hour * 2 + ev_min / 30 - start_h*2)
 			ev_h = (ev[0]/1800) * hour_h
 
 			pdf.rect(
 				ev_x, ev_y,
-				line_x - ev_x - 10, ev_h,
+				ev_w, ev_h,
 				style = "F",
 			)
 
 			pdf.set_xy(ev_x, ev_y)
 			pdf.multi_cell(
-				w = line_x - ev_x - 10,
+				w = ev_w,
 				h = 10/2,
 				align = "L",
 				text = hms + ": " + ev[1]
