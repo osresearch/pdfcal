@@ -242,6 +242,12 @@ def add_day(pdf, year, mon, day):
 	all_day = ''
 
 	pdf.set_font(font, '', 10)
+	ev_x_base = left_margin + hour_h + 2
+	ev_w = (line_x - ev_x_base - 10) / 2
+
+	# support up to three overlapping events
+	tracks = [0, 0, 0]
+
 	for hms,evs in sorted(events.items()):
 		for ev in evs:
 			if hms == "00:00" and ev[0] == 0:
@@ -252,8 +258,6 @@ def add_day(pdf, year, mon, day):
 			# time bounded; if it is less than the earliest time,
 			# draw it at the start time.
 			ev_hour,ev_min = [int(_) for _ in hms.split(":")]
-			ev_x = left_margin + hour_h + 5
-			ev_w = (line_x - ev_x - 10) / 2
 
 			if ev_hour < start_h:
 				ev_hour = start_h
@@ -264,6 +268,15 @@ def add_day(pdf, year, mon, day):
 
 			ev_y = hour_h * (ev_hour * 2 + ev_min / 30 - start_h*2)
 			ev_h = (ev[0]/1800) * hour_h
+
+			# find the first track that this event fits in
+			for indent in range(0,len(tracks)):
+				if ev_y < tracks[indent]:
+					continue
+				tracks[indent] = ev_y + ev_h
+				ev_x = ev_x_base + (ev_w+2) * indent
+				break
+
 
 			pdf.rect(
 				ev_x, ev_y,
