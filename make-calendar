@@ -4,9 +4,21 @@ import datetime
 import sys
 from ical2csv import process_ical
 from icalendar import Calendar, Event
+import argparse
+
+parser = argparse.ArgumentParser(description='Calendar Generator', usage='%(prog)s [options] [cal.ical...]')
+parser.add_argument('-O', '--output', help="Output file (default agenda-YYYY.pdf)", required=False)
+parser.add_argument('-y','--year', help='Year to generate (default current year)', required=False, type=int, default=datetime.datetime.now().year)
+parser.add_argument('-w','--linewidth', help='Width of time block lines (0.1 default)', required=False, type=float, default=0.1)
+parser.add_argument('-c','--linecolor', help='color of time block lines (200 default - higher is lighter)', required=False, type=float, default=200)
+parser.add_argument('cal', nargs='*', help="iCal formatted files to be included")
+args = vars(parser.parse_args())
 
 font = 'dejavu'
-year = datetime.datetime.now().year
+year = args['year']
+output = args['output'] or 'agenda-%04d.pdf' % (year)
+time_block_line_width = args['linewidth']
+time_block_line_color = args['linecolor']
 
 # close to a4 sizes in mm, but matching the remarkable 2
 w = 210
@@ -22,6 +34,8 @@ pdf = FPDF(
 )
 pdf.set_margins(0,0)
 pdf.set_auto_page_break(False)
+pdf.set_title('Agenda for %04d' % (year))
+pdf.set_author('pdfcal')
 pdf.add_font(font, '', fname='fonts/DejaVuSansCondensed.ttf')
 pdf.add_font(font, 'B', fname='fonts/DejaVuSansCondensed-Bold.ttf')
 
@@ -33,8 +47,9 @@ months = [ "None", "January", "February", "March", "April", "May", "June", "July
 # read events to populate in the calendar from a csv file
 entries = {}
 
-for filename in sys.argv[1:]:
+for filename in args['cal']:
 	with open(filename, "r") as f:
+		print(f"processing iCal {filename}")
 		cal = Calendar.from_ical(f.read())
 		process_ical(year, cal, entries)
 
@@ -47,7 +62,7 @@ def add_calendar(
 	x,
 	y,
 	day_font = None,
-	border=False,
+	border = False,
 	include_year = False, # true == full page overview of the month
 	ysize = None,
 ):
@@ -201,8 +216,8 @@ def add_day(pdf, year, mon, day):
 	)
 
 	# add the time blocks
-	pdf.set_draw_color(200)
-	pdf.set_line_width(0)
+	pdf.set_draw_color(time_block_line_color)
+	pdf.set_line_width(time_block_line_width)
 	pdf.set_fill_color(240)
 	pdf.set_text_color(40)
 	pdf.set_font(font, 'B', 16)
@@ -362,5 +377,6 @@ for mon in range(1,12+1):
 	for day in range(1,31+1):
 		add_day(pdf, year, mon, day)
 
-pdf.output('agenda-%04d.pdf' % (year))
+print(f"Generating {output}")
+pdf.output(output)
 
